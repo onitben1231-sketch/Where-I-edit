@@ -1670,9 +1670,15 @@ serve(async (_req) => {
 
     // ── 4. Generate 4H entry signal ───────────────────────────────
     const entryAnalysis = analysis[CONFIG.ENTRY_TIMEFRAME];
-    const currentPrice  = entryAnalysis.bosEvents.length > 0
-      ? entryAnalysis.bosEvents[entryAnalysis.bosEvents.length - 1].closePrice
-      : 0;
+  const { data: latestCandle } = await supabase
+  .from(CONFIG.TABLE)
+  .select("close")
+  .eq("timeframe", CONFIG.ENTRY_TIMEFRAME)
+  .order("open_time", { ascending: false })
+  .limit(1)
+  .single();
+
+const currentPrice = latestCandle ? Number(latestCandle.close) : 0;
 
     const signal = generateEntrySignal(
       CONFIG.SYMBOL,

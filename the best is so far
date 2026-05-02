@@ -1280,10 +1280,32 @@ export function generateEntrySignal(
     return true;
   };
 
-  const latestEvent =
-    recentEvents.findLast(ev => eventQualifies(ev)) ?? null;
+  const qualifiedEvents = recentEvents.filter(ev => eventQualifies(ev));
 
-  if (!latestEvent) return null;
+if (qualifiedEvents.length === 0) return null;
+
+const getOTEDistance = (ev: BOSEvent): number => {
+  const ob = entryAnalysis.orderBlocks.find(
+    o => o.legStart  === ev.originAnchorIdx &&
+         o.bosIndex  === ev.bosIndex        &&
+         o.mitigated === "none",
+  );
+  const pdZone = entryAnalysis.premiumDiscountZones.find(
+    z => z.bosIndex === ev.bosIndex && !z.violated,
+  );
+  if (!ob || !pdZone) return Infinity;
+
+  const oteMid = narrative === "bullish"
+    ? (pdZone.buyOteLow  + pdZone.buyOteHigh)  / 2
+    : (pdZone.sellOteLow + pdZone.sellOteHigh) / 2;
+
+  return Math.abs(ob.limitEntryPrice - oteMid);
+};
+
+const latestEvent = qualifiedEvents.reduce((best, ev) =>
+  getOTEDistance(ev) < getOTEDistance(best) ? ev : best,
+  qualifiedEvents[0],
+);
 
   const legStart = latestEvent.originAnchorIdx;
   const legEnd   = latestEvent.bosIndex;

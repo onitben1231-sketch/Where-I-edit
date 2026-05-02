@@ -15,8 +15,8 @@ export const CONFIG = Object.freeze({
   HTF_WEIGHTS: {
     "1M": 2,
     "1W": 2,
-    "1D": 5,
-    "4H": 2,
+    "1D": 6,
+    "4H": 3,
   } as Record<string, number>,
 
   ATR_PERIOD:         14,

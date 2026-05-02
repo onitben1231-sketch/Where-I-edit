@@ -1323,8 +1323,8 @@ export function generateEntrySignal(
     if (ind.legBosIndex !== legEnd) return false;   // cross-leg — structurally unrelated
 
     return narrative === "bullish"
-      ? ind.level > entryPrice && ind.level < currentPrice
-      : ind.level < entryPrice && ind.level > currentPrice;
+  ? ind.level > entryPrice && ind.level < latestEvent.level
+  : ind.level < entryPrice && ind.level > latestEvent.level;
   });
   if (!hasPendingInducement) return null;
 

@@ -1353,7 +1353,15 @@ const latestEvent = qualifiedEvents.reduce((best, ev) =>
   const riskAmount = Math.abs(entryPrice - stopLoss);
 
   // Guard: degenerate POI where entry === stop has no risk definition
-  if (riskAmount === 0) return null;
+if (riskAmount === 0) return null;
+
+// ── SL SIZE VALIDATION ────────────────────────────────────────
+// Stop loss must be within institutional bounds relative to ATR.
+// Too tight = noise stop, will be hunted before entry fills.
+// Too wide  = structurally broken POI, risk is not justified.
+const slATR = riskAmount / entryAnalysis.finalATR;
+if (slATR < CONFIG.MIN_SL_ATR) return null;
+if (slATR > CONFIG.MAX_SL_ATR) return null;
 
 
   // ── G5: PENDING INDUCEMENT — LIQUIDITY MAGNET ─────────────────

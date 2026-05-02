@@ -1240,12 +1240,50 @@ export function generateEntrySignal(
   if (!entryAnalysis.bosEvents || entryAnalysis.bosEvents.length === 0) return null;
 
 
-  // ── G2: LATEST BOS ALIGNS WITH NARRATIVE ──────────────────────
-  // Only the most recent structural break is considered. A stale
-  // break in the opposite direction of narrative is disqualifying;
-  // the engine waits for structural confirmation of the HTF bias.
-  const latestEvent = entryAnalysis.bosEvents[entryAnalysis.bosEvents.length - 1];
-  if (latestEvent.direction !== narrative) return null;
+  // ── G2: QUALIFYING BOS EVENT SELECTION ────────────────────────
+  // Check the two most recent BOS events that match narrative.
+  // Use the most recent one that has all required conditions met.
+  // Fall back to the older one if the newest does not qualify.
+  const recentEvents = entryAnalysis.bosEvents
+    .slice(-2)
+    .filter(ev => ev.direction === narrative);
+
+  if (recentEvents.length === 0) return null;
+
+  const eventQualifies = (ev: BOSEvent): boolean => {
+    const hasOB = entryAnalysis.orderBlocks.some(
+      ob => ob.legStart  === ev.originAnchorIdx &&
+            ob.bosIndex  === ev.bosIndex         &&
+            ob.mitigated === "none",
+    );
+    if (!hasOB) return false;
+
+    const hasFVG = entryAnalysis.fvgs.some(
+      fvg => fvg.impulseIndex > ev.originAnchorIdx &&
+             fvg.impulseIndex < ev.bosIndex         &&
+             fvg.type         === narrative          &&
+             fvg.mitigated    !== "full",
+    );
+    if (!hasFVG) return false;
+
+    const hasInducement = entryAnalysis.inducement.some(
+      ind => ind.legBosIndex === ev.bosIndex &&
+             !ind.swept,
+    );
+    if (!hasInducement) return false;
+
+    const hasPDZone = entryAnalysis.premiumDiscountZones.some(
+      z => z.bosIndex === ev.bosIndex && !z.violated,
+    );
+    if (!hasPDZone) return false;
+
+    return true;
+  };
+
+  const latestEvent =
+    recentEvents.findLast(ev => eventQualifies(ev)) ?? null;
+
+  if (!latestEvent) return null;
 
   const legStart = latestEvent.originAnchorIdx;
   const legEnd   = latestEvent.bosIndex;
